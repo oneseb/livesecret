@@ -4,6 +4,7 @@ defmodule LiveSecretWeb.PageLive do
   alias Phoenix.LiveView.JS
   alias LiveSecretWeb.{SecretFormComponent, ActiveUser}
   alias LiveSecret.{Presecret, Secret}
+  use PhoenixHTMLHelpers
 
   require Logger
 
@@ -24,7 +25,7 @@ defmodule LiveSecretWeb.PageLive do
           <div class="rounded-lg bg-white px-5 py-6 shadow sm:px-6">
             <LiveSecretWeb.BreadcrumbComponent.show
               :if={not is_nil(@id)}
-              home={Routes.page_path(@socket, :create)}
+              home={~p"/"}
               id={@id}
               live_action={@live_action}
               burned_at={@burned_at}
@@ -46,7 +47,7 @@ defmodule LiveSecretWeb.PageLive do
               <% :create -> %>
                 <.secret_links
                   live_action={@live_action}
-                  to={Routes.page_path(@socket, :receiver, "dne")}
+                  to={~p"/secret/dne"}
                   enabled={is_nil(@burned_at)}
                 />
                 <SecretFormComponent.create
@@ -60,7 +61,7 @@ defmodule LiveSecretWeb.PageLive do
               <% :admin -> %>
                 <.secret_links
                   live_action={@live_action}
-                  to={Routes.page_path(@socket, :receiver, @id)}
+                  to={~p"/secret/#{@id}"}
                   enabled={is_nil(@burned_at)}
                 />
 
@@ -628,7 +629,7 @@ defmodule LiveSecretWeb.PageLive do
       secret = %Secret{} ->
         {:ok,
          socket
-         |> assign(page_title: "Managing Secret · LiveSecret")
+         |> assign(page_title: "Managing Secret")
          |> assert_creator_key!(id, key)
          |> assign_current_user()
          |> assign_secret_metadata(secret)
@@ -645,7 +646,7 @@ defmodule LiveSecretWeb.PageLive do
       secret = %Secret{} ->
         {:ok,
          socket
-         |> assign(page_title: "Receiving Secret · LiveSecret")
+         |> assign(page_title: "Receiving Secret")
          |> assign_current_user()
          |> assign_secret_metadata(secret)
          |> assign(special_action: nil)
@@ -686,8 +687,8 @@ defmodule LiveSecretWeb.PageLive do
      socket
      |> assign_secret_metadata(secret)
      |> assign(changeset: nil)
-     |> assign(page_title: "Managing Secret · LiveSecret")
-     |> push_patch(to: Routes.page_path(socket, :admin, id, %{key: creator_key}))}
+     |> assign(page_title: "Managing Secret")
+     |> push_patch(to: ~p"/admin/#{id}?key=#{creator_key}")}
   end
 
   # Unlock a specific user for content decryption
@@ -836,7 +837,7 @@ defmodule LiveSecretWeb.PageLive do
     {:noreply,
      socket
      |> put_flash(:info, "The secret has expired. You've been redirected to the home page.")
-     |> push_navigate(to: Routes.page_path(socket, :create))}
+     |> push_navigate(to: ~p"/")}
   end
 
   defp handle_joins(socket, joins) do
@@ -972,7 +973,7 @@ defmodule LiveSecretWeb.PageLive do
           :error,
           "That secret doesn't exist. You've been redirected to the home page."
         )
-        |> push_navigate(to: Routes.page_path(socket, :create))
+        |> push_navigate(to: ~p"/")
     end
   end
 
