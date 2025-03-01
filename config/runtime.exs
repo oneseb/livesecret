@@ -62,6 +62,12 @@ if config_env() == :prod do
   config :livesecret, LiveSecret.Expiration, interval: :timer.seconds(20)
 
   config :livesecret, LiveSecretWeb.Presence,
+    tenants:
+      (case System.get_env("TENANTS") do
+         nil -> []
+         "" -> []
+         tenants -> String.split(tenants, ",")
+       end),
     behind_proxy:
       "true" ==
         (System.get_env("BEHIND_PROXY") ||

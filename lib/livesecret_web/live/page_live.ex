@@ -647,7 +647,6 @@ defmodule LiveSecretWeb.PageLive do
          socket
          |> assign(page_title: "Managing Secret")
          |> assert_creator_key!(id, key)
-         |> assign_current_user()
          |> assign_secret_metadata(secret)
          |> assign(special_action: nil)
          |> detect_presence()}
@@ -663,7 +662,6 @@ defmodule LiveSecretWeb.PageLive do
         {:ok,
          socket
          |> assign(page_title: "Receiving Secret")
-         |> assign_current_user()
          |> assign_secret_metadata(secret)
          |> assign(special_action: nil)
          |> detect_presence()}
@@ -677,7 +675,6 @@ defmodule LiveSecretWeb.PageLive do
     {:ok,
      socket
      |> assign(page_title: "LiveSecret")
-     |> assign_current_user()
      |> assign_secret_metadata(%Secret{})
      |> assign(special_action: nil)
      |> assign(changeset: Presecret.changeset(Presecret.new(), %{}))}
@@ -968,15 +965,6 @@ defmodule LiveSecretWeb.PageLive do
       burned_at: burned_at,
       live?: live?
     )
-  end
-
-  def assign_current_user(socket = %{assigns: %{current_user: u}}) when not is_nil(u) do
-    socket
-  end
-
-  def assign_current_user(socket) do
-    socket
-    |> assign(current_user: LiveSecretWeb.Presence.user_from_socket(socket))
   end
 
   def read_secret_or_redirect(socket, id) do

@@ -11,7 +11,7 @@ config :livesecret, LiveSecretWeb.Endpoint,
 
 config :livesecret, LiveSecret.Expiration, interval: :timer.seconds(20)
 
-config :livesecret, LiveSecretWeb.Presence, behind_proxy: false
+config :livesecret, LiveSecretWeb.Presence, tenants: ["localhost"], behind_proxy: false
 
 # Print only warnings and errors during test
 config :logger, level: :warning
