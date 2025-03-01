@@ -1,20 +1,16 @@
-defmodule LiveSecret.DataCase do
+defmodule LiveSecret.TenantCase do
   @moduledoc """
   This module defines the setup for tests requiring
   access to the application's data layer.
 
   You may define functions here to be used as helpers in
   your tests.
-
-  Finally, if the test case interacts with the database,
-  we enable the SQL sandbox, so changes done to the database
-  are reverted at the end of every test. If you are using
-  PostgreSQL, you can even run database tests asynchronously
-  by setting `use LiveSecret.DataCase, async: true`, although
-  this option is not recommended for other databases.
   """
 
   use ExUnit.CaseTemplate
+  alias Ecto.UUID
+  alias EctoFoundationDB.Sandbox
+  alias LiveSecret.Repo
 
   using do
     quote do
@@ -23,7 +19,7 @@ defmodule LiveSecret.DataCase do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import LiveSecret.DataCase
+      import LiveSecret.TenantCase
 
       @valid_presecret_attrs %{
         "burn_key" => "exunit-burnkey",
@@ -52,16 +48,18 @@ defmodule LiveSecret.DataCase do
   end
 
   setup tags do
-    LiveSecret.DataCase.setup_sandbox(tags)
-    :ok
+    setup_sandbox(tags)
   end
 
-  @doc """
-  Sets up the sandbox based on the test tags.
-  """
-  def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(LiveSecret.Repo, shared: not tags[:async])
-    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+  def setup_sandbox(_tags) do
+    tenant_id = UUID.autogenerate()
+    tenant = Sandbox.checkout(Repo, tenant_id, [])
+
+    on_exit(fn ->
+      Sandbox.checkin(Repo, tenant_id)
+    end)
+
+    {:ok, [tenant_id: tenant_id, tenant: tenant]}
   end
 
   @doc """

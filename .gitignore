@@ -37,3 +37,6 @@ npm-debug.log
 *.db-*
 
 .env
+prod.sh
+.erlfdb_sandbox
+.livesecret

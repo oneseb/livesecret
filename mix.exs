@@ -38,6 +38,11 @@ defmodule LiveSecret.MixProject do
       {:phoenix_ecto, "~> 4.6"},
       {:ecto_sql, "~> 3.11"},
       {:ecto_sqlite3, ">= 0.0.0"},
+      {:ecto_foundationdb, "~> 0.4.0"},
+      {:ex_fdbmonitor,
+       git: "https://github.com/foundationdb-beam/ex_fdbmonitor.git",
+       branch: "main",
+       only: [:dev, :prod]},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_view, "~> 2.0"},
@@ -65,10 +70,6 @@ defmodule LiveSecret.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "ecto.setup"],
-      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.deploy": [
         "tailwind default --minify",
         "esbuild default --minify",

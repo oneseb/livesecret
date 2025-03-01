@@ -34,7 +34,7 @@ defmodule LiveSecretWeb.PageLive do
 
             <%= case @special_action do %>
               <% :decrypting -> %>
-                <% secret = LiveSecret.get_secret!(@id) %>
+                <% secret = LiveSecret.get_secret!(@tenant, @id) %>
                 <.decrypt_modal
                   :if={not is_nil(secret.content)}
                   secret={secret}
@@ -689,15 +689,16 @@ defmodule LiveSecretWeb.PageLive do
   def handle_event(
         "validate",
         %{"presecret" => attrs},
-        socket = %{assigns: %{changeset: _changeset}}
+        socket = %{assigns: %{tenant: tenant, changeset: _changeset}}
       ) do
-    changeset = LiveSecret.validate_presecret(attrs)
+    changeset = LiveSecret.validate_presecret(tenant, attrs)
     {:noreply, assign(socket, changeset: changeset)}
   end
 
   # Submit form data for secret creation
   def handle_event("create", %{"presecret" => attrs}, socket) do
-    secret = %Secret{id: id, creator_key: creator_key} = LiveSecret.insert!(attrs)
+    %{assigns: %{tenant: tenant}} = socket
+    secret = %Secret{id: id, creator_key: creator_key} = LiveSecret.insert!(tenant, attrs)
 
     {:noreply,
      socket
@@ -724,7 +725,8 @@ defmodule LiveSecretWeb.PageLive do
         _params,
         socket = %{assigns: %{live_action: :admin, id: id, users: users}}
       ) do
-    secret = LiveSecret.go_async!(id)
+    %{assigns: %{tenant: tenant}} = socket
+    secret = LiveSecret.go_async!(tenant, id)
 
     # unlock all users currently online
     for {user_id, %ActiveUser{live_action: :receiver, state: :locked}} <- users do
@@ -737,7 +739,8 @@ defmodule LiveSecretWeb.PageLive do
   end
 
   def handle_event("go_live", _params, socket = %{assigns: %{live_action: :admin, id: id}}) do
-    secret = LiveSecret.go_live!(id)
+    %{assigns: %{tenant: tenant}} = socket
+    secret = LiveSecret.go_live!(tenant, id)
 
     # Cannot lock a user if they're already unlocked, so no broadcast here
 
@@ -754,7 +757,8 @@ defmodule LiveSecretWeb.PageLive do
           assigns: %{id: id, current_user: current_user, live_action: live_action, users: users}
         }
       ) do
-    secret = LiveSecret.get_secret!(id)
+    %{assigns: %{tenant: tenant}} = socket
+    secret = LiveSecret.get_secret!(tenant, id)
 
     if assert_burnkey_match(params, secret) and
          live_action === :receiver do
@@ -881,7 +885,8 @@ defmodule LiveSecretWeb.PageLive do
   end
 
   def assert_creator_key!(socket, id, key) do
-    result = LiveSecret.get_secret!(id)
+    %{assigns: %{tenant: tenant}} = socket
+    result = LiveSecret.get_secret!(tenant, id)
     ^key = result.creator_key
     socket
   end
@@ -975,7 +980,9 @@ defmodule LiveSecretWeb.PageLive do
   end
 
   def read_secret_or_redirect(socket, id) do
-    case LiveSecret.get_secret(id) do
+    %{assigns: %{tenant: tenant}} = socket
+
+    case LiveSecret.get_secret(tenant, id) do
       secret = %Secret{} ->
         secret
 
