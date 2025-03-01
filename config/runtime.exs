@@ -64,8 +64,8 @@ if config_env() == :prod do
   config :livesecret, LiveSecretWeb.Presence,
     tenants:
       (case System.get_env("TENANTS") do
-         nil -> []
-         "" -> []
+         nil -> [host]
+         "" -> [host]
          tenants -> String.split(tenants, ",")
        end),
     behind_proxy:
