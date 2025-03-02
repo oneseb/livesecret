@@ -1,36 +1,6 @@
 import Config
 
-config :ex_fdbmonitor,
-  etc_dir: "/var/lib/livesecret/data/fdb/etc",
-  run_dir: "/var/lib/livesecret/data/fdb/run"
-
-node_idx = Integer.parse(System.fetch_env!("LIVESECRET_NODE_IDX"))
-
-addr_fn = fn if ->
-  {:ok, addrs} = :inet.getifaddrs()
-
-  :proplists.get_value(to_charlist(if), addrs)[:addr]
-  |> :inet.ntoa()
-  |> to_string()
-end
-
-config :ex_fdbmonitor,
-  bootstrap: [
-    cluster:
-      if(node_idx > 0,
-        do: :autojoin,
-        else: [
-          coordinator_addr: addr_fn.("en0")
-        ]
-      ),
-    conf: [
-      data_dir: "/var/lib/livesecret/data/fdb/data",
-      log_dir: "/var/lib/livesecret/data/fdb/log",
-      fdbservers: [port: 4500, port: 4501]
-    ],
-    fdbcli: if(node_idx == 0, do: ~w[configure new single ssd-redwood-1]),
-    fdbcli: if(node_idx == 0, do: ~w[coordinators auto])
-  ]
+config :livesecret, LiveSecret.Repo, open_db: &ExFdbmonitor.Cluster.open_db/1
 
 # For production, don't forget to configure the url host
 # to something meaningful, Phoenix uses this information

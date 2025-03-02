@@ -40,3 +40,4 @@ npm-debug.log
 prod.sh
 .erlfdb_sandbox
 .livesecret
+.elixir_ls

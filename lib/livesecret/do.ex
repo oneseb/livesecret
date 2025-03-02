@@ -11,6 +11,23 @@ defmodule LiveSecret.Do do
     Tenant.open!(Repo, tenant_id)
   end
 
+  def watch_secret(tenant, label, id) do
+    Repo.transaction(
+      fn ->
+        case Repo.get(Secret, id) do
+          nil ->
+            {:error, :not_found}
+
+          secret ->
+            # workaround for [ecto_foundationdb/#37](https://github.com/ecto-foundationdb/ecto_foundationdb/issues/37)
+            secret = FoundationDB.usetenant(secret, tenant)
+            {:ok, {secret, Repo.watch(secret, label: label)}}
+        end
+      end,
+      prefix: tenant
+    )
+  end
+
   def get_expired_secrets(tenant, now) do
     Repo.stream(Secret, prefix: tenant)
     |> Stream.filter(fn %Secret{expires_at: at} ->

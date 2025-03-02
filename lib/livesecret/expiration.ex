@@ -39,7 +39,6 @@ defmodule LiveSecret.Expiration do
         fn id, del_acc ->
           case Do.delete_secret(tenant, id) do
             {:ok, _} ->
-              LiveSecret.PubSubDo.notify_expired(id)
               [id | del_acc]
 
             error ->

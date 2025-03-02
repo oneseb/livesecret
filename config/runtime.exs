@@ -21,16 +21,60 @@ if System.get_env("PHX_SERVER") do
 end
 
 if config_env() == :prod do
+  config :ex_fdbmonitor,
+    fdbmonitor: System.get_env("FDBMONITOR_PATH") || "/usr/local/libexec/fdbmonitor",
+    fdbcli: System.get_env("FDBCLI_PATH") || "/usr/local/bin/fdbcli",
+    fdbserver: System.get_env("FDBSERVER_PATH") || "/usr/local/libexec/fdbserver",
+    fdbdr: System.get_env("FDBDR_PATH") || "/usr/local/bin/fdbdr",
+    backup_agent:
+      System.get_env("BACKUP_AGENT_PATH") || "/usr/local/foundationdb/backup_agent/backup_agent",
+    dr_agent: System.get_env("DR_AGENT_PATH") || "/usr/local/bin/dr_agent"
+
   database_path =
     System.get_env("DATABASE_PATH") ||
       raise """
       environment variable DATABASE_PATH is missing.
-      For example: /etc/livesecret/livesecret.db
+      For example: /var/lib/livesecret/data
       """
 
-  config :livesecret, LiveSecret.Repo,
-    database: database_path,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
+  config :ex_fdbmonitor,
+    etc_dir: Path.join(database_path, "etc"),
+    run_dir: Path.join(database_path, "run")
+
+  node_idx = String.to_integer(System.get_env("LIVESECRET_NODE_IDX") || "0")
+  node_count = String.to_integer(System.get_env("LIVESECRET_NODE_COUNT") || "1")
+  interface = System.get_env("LIVESECRET_COORDINATOR_IF") || "lo"
+
+  addr_fn = fn if ->
+    {:ok, addrs} = :inet.getifaddrs()
+
+    addrs
+    |> then(&:proplists.get_value(~c"#{if}", &1))
+    |> then(&:proplists.get_all_values(:addr, &1))
+    |> Enum.filter(&(tuple_size(&1) == 4))
+    |> hd()
+    |> :inet.ntoa()
+    |> to_string()
+  end
+
+  config :ex_fdbmonitor,
+    bootstrap: [
+      cluster:
+        if(node_idx > 0,
+          do: :autojoin,
+          else: [
+            coordinator_addr: addr_fn.(interface)
+          ]
+        ),
+      conf: [
+        data_dir: Path.join(database_path, "data"),
+        log_dir: Path.join(database_path, "log"),
+        fdbservers: [[port: 4500], [port: 4501]]
+      ],
+      fdbcli: if(node_idx == 0, do: ~w[configure new single ssd-redwood-1]),
+      fdbcli: if(node_idx == 2, do: ~w[configure double]),
+      fdbcli: if(node_idx == node_count - 1, do: ~w[coordinators auto])
+    ]
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
@@ -61,13 +105,14 @@ if config_env() == :prod do
 
   config :livesecret, LiveSecret.Expiration, interval: :timer.seconds(20)
 
+  to_list = fn
+    nil -> []
+    "" -> []
+    s -> String.split(s, ",")
+  end
+
   config :livesecret, LiveSecretWeb.Presence,
-    tenants:
-      (case System.get_env("TENANTS") do
-         nil -> [host]
-         "" -> [host]
-         tenants -> String.split(tenants, ",")
-       end),
+    tenants: to_list.(System.get_env("TENANTS") || host),
     behind_proxy:
       "true" ==
         (System.get_env("BEHIND_PROXY") ||
@@ -91,22 +136,12 @@ if config_env() == :prod do
     # any proxies in between the end user and LiveSecret. When computing the remote
     # address for a user, these networks will be ignored.
     #    See remote_ip for more details
-    remote_ip_proxies:
-      (case System.get_env("REMOTE_IP_PROXIES") do
-         nil -> []
-         "" -> []
-         proxies -> String.split(proxies, ",")
-       end),
+    remote_ip_proxies: to_list.(System.get_env("REMOTE_IP_PROXIES")),
 
     # Define REMOTE_IP_CLIENTS as a comma-delimited list of CIDRs that represent
     # any known client networks. For example -- By default, LiveSecret will ignore
     # a 10.0.0.0/8 address if it's computed as the remote address for a client. If
     # an address on this network is allowable, it must be defined in REMOTE_IP_CLIENTS.
     #    See remote_ip for more details
-    remote_ip_clients:
-      (case System.get_env("REMOTE_IP_CLIENTS") do
-         nil -> []
-         "" -> []
-         clients -> String.split(clients, ",")
-       end)
+    remote_ip_clients: to_list.(System.get_env("REMOTE_IP_CLIENTS"))
 end

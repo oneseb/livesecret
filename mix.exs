@@ -4,7 +4,7 @@ defmodule LiveSecret.MixProject do
   def project do
     [
       app: :livesecret,
-      version: "0.3.0",
+      version: "0.4.0",
       elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
       elixirc_options: [warnings_as_errors: true],
@@ -36,13 +36,8 @@ defmodule LiveSecret.MixProject do
       {:phoenix, "~> 1.7.0"},
       {:ecto, "~> 3.10"},
       {:phoenix_ecto, "~> 4.6"},
-      {:ecto_sql, "~> 3.11"},
-      {:ecto_sqlite3, ">= 0.0.0"},
       {:ecto_foundationdb, "~> 0.4.0"},
-      {:ex_fdbmonitor,
-       git: "https://github.com/foundationdb-beam/ex_fdbmonitor.git",
-       branch: "main",
-       only: [:dev, :prod]},
+      {:ex_fdbmonitor, "~> 0.1", only: [:dev, :prod]},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_view, "~> 2.0"},
