@@ -126,7 +126,7 @@ touch .env
 #
 source .env
 docker compose build
-docker compose up
+docker compose up # Optional: -d for detached mode
 ```
 
 #### Subtle Crypto requirements

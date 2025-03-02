@@ -57,18 +57,18 @@ defmodule LiveSecretWeb.PageComponents do
             </div>
           </div>
         <% {true, _} -> %>
-        <div class="rounded-md bg-blue-50 p-4">
-          <div class="flex">
-            <div class="ml-3">
-              <div class="flex">
-                <h3 class="text-sm font-medium text-blue-800">👋 Goodbye</h3>
-              </div>
-              <div class="mt-2 text-sm text-blue-700">
-                <p>We're all done here. Please close this window.</p>
+          <div class="rounded-md bg-blue-50 p-4">
+            <div class="flex">
+              <div class="ml-3">
+                <div class="flex">
+                  <h3 class="text-sm font-medium text-blue-800">👋 Goodbye</h3>
+                </div>
+                <div class="mt-2 text-sm text-blue-700">
+                  <p>We're all done here. Please close this window.</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
         <% _ -> %>
       <% end %>
     </div>
@@ -392,7 +392,7 @@ defmodule LiveSecretWeb.PageComponents do
                 </h3>
                 <div class="mt-2">
                   <p class="text-sm text-gray-500">
-                  When you leave this window, the content is gone forever.
+                    When you leave this window, the content is gone forever.
                   </p>
                 </div>
               </div>
