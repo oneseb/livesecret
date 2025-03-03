@@ -36,7 +36,7 @@ browser's memory at some point after the encryption event; the exact timing is d
 on the browser.
 
 LiveSecret always uses a passphrase-like encryption key to encrypt the secret content. When you
-author a secret, if you don't specifiy a passphrase, one will be generated for you. The passphrase
+author a secret, if you don't specify a passphrase, one will be generated for you. The passphrase
 is stored locally in the browser and is never transmitted to the server in any form.
 
 As the author of a secret, you will be required to transmit the passphrase [out-of-band](https://en.wikipedia.org/wiki/Out-of-band_data) with the
@@ -98,7 +98,6 @@ To start the LiveSecret Phoenix server:
 
   * Install dependencies with `mix deps.get`
   * Install Tailwind CSS with `mix tailwind.install`
-  * Create and migrate your database with `mix ecto.setup`
   * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
   * Run the tests with `mix test`
 
@@ -127,13 +126,20 @@ touch .env
 #
 source .env
 docker compose build
-docker compose up -d
+docker compose up # Optional: -d for detached mode
 ```
+
+#### Subtle Crypto requirements
+
+**HTTPS**: `window.crypto.subtle` will return `undefined` on HTTP in an environment other than a local
+environment (i.e. localhost). Hence, to run LiveSecret on an actual domain
+name on the internet, you need to set up SSL (HTTPS). See [Mozilla | Secure Contexts](developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
+for more information.
 
 #### Deployment Configuration
 
 Standard Phoenix:
-* `DATABASE_PATH`: Path to the sqlite database on the filesystem
+* `DATABASE_PATH`: Filesystem directory in which store LiveSecret database files
 * `PHX_HOST`: The hostname that is presented to the user's browser
 * `PORT`: The port that Phoenix listens on
 * `SECRET_KEY_BASE`: Standard Phoenix env var for encrypting cookie, etc
@@ -143,6 +149,11 @@ Unique to LiveSecret:
    configured x-header. It is strongly recommended to use a reverse proxy.
 * `REMOTE_IP_HEADER`: The trusted x-header that presents the end user's IP address. It must
    start with "x-"
+
+FoundationDB paths:
+* `FDBMONITOR_PATH`
+* `FDBCLI_PATH`
+* `FDBSERVER_PATH`
 
 ## Learn more about Phoenix
 

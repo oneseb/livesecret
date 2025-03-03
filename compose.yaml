@@ -27,6 +27,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     network_mode: bridge
   web:
+    user: "1001:1001"
     build: .
     ports:
       - "8000:80"
@@ -36,14 +37,14 @@ services:
       VIRTUAL_HOST: ${PHX_HOST:-livesecret.local}
       LETSENCRYPT_HOST: ${PHX_HOST:-livesecret.local}
       PHX_HOST: ${PHX_HOST:-livesecret.local}
-      DATABASE_PATH: ${DATABASE_PATH:-/etc/data/livesecret.db}
+      DATABASE_PATH: ${DATABASE_PATH:-/data/livesecret}
       PORT: ${PORT:-80}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-UnGoAFE04s30EwJQD6XRsIjNiMNAsSSeIB7OLfhjE+jNfDGXyyODdQvbj+MeMsmL}
       BEHIND_PROXY: ${BEHIND_PROXY:-true}
       REMOTE_IP_HEADER: ${REMOTE_IP_HEADER:-x-real-ip}
       REMOTE_IP_CLIENTS: 0.0.0.0/0
     volumes:
-      - db-data:/etc/data:rw
+      - db-data:/data:rw
     network_mode: bridge
 volumes:
   html:

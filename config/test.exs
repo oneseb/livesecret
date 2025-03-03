@@ -1,14 +1,6 @@
 import Config
 
-# Configure your database
-#
-# The MIX_TEST_PARTITION environment variable can be used
-# to provide built-in test partitioning in CI environment.
-# Run `mix help test` for more information.
-config :livesecret, LiveSecret.Repo,
-  database: Path.expand("../livesecret_test.db", Path.dirname(__ENV__.file)),
-  pool_size: 5,
-  pool: Ecto.Adapters.SQL.Sandbox
+config :livesecret, LiveSecret.Repo, open_db: &EctoFoundationDB.Sandbox.open_db/1
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
@@ -19,7 +11,7 @@ config :livesecret, LiveSecretWeb.Endpoint,
 
 config :livesecret, LiveSecret.Expiration, interval: :timer.seconds(20)
 
-config :livesecret, LiveSecretWeb.Presence, behind_proxy: false
+config :livesecret, LiveSecretWeb.Presence, tenants: ["localhost"], behind_proxy: false
 
 # Print only warnings and errors during test
 config :logger, level: :warning

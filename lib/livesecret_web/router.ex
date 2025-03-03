@@ -17,9 +17,11 @@ defmodule LiveSecretWeb.Router do
   scope "/", LiveSecretWeb do
     pipe_through(:browser)
 
-    live("/", PageLive, :create)
-    live("/admin/:id", PageLive, :admin)
-    live("/secret/:id", PageLive, :receiver)
+    live_session :user, on_mount: LiveSecretWeb.InitAssigns do
+      live("/", PageLive, :create)
+      live("/admin/:id", PageLive, :admin)
+      live("/secret/:id", PageLive, :receiver)
+    end
   end
 
   # Enables LiveDashboard only for development

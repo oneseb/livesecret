@@ -34,7 +34,7 @@ defmodule LiveSecretWeb.ConnCase do
   end
 
   setup tags do
-    LiveSecret.DataCase.setup_sandbox(tags)
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+    {:ok, context} = LiveSecret.TenantCase.setup_sandbox(tags)
+    {:ok, context ++ [conn: Phoenix.ConnTest.build_conn()]}
   end
 end

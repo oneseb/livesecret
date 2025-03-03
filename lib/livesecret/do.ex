@@ -1,27 +1,69 @@
 defmodule LiveSecret.Do do
   alias LiveSecret.{Repo, Secret, Presecret}
-  import Ecto.Query, only: [from: 2]
+  alias Ecto.Adapters.FoundationDB
+  alias EctoFoundationDB.Tenant
 
-  def count_secrets() do
-    Repo.aggregate(from(_s in Secret, []), :count, :id)
+  def list_tenants() do
+    Tenant.list(Repo)
   end
 
-  def list_secrets() do
-    Repo.all(Secret)
+  def open_tenant(tenant_id) do
+    Tenant.open!(Repo, tenant_id)
+  end
+
+  def watch_secret(tenant, label, id) do
+    Repo.transaction(
+      fn ->
+        case Repo.get(Secret, id) do
+          nil ->
+            {:error, :not_found}
+
+          secret ->
+            # workaround for [ecto_foundationdb/#37](https://github.com/ecto-foundationdb/ecto_foundationdb/issues/37)
+            secret = FoundationDB.usetenant(secret, tenant)
+            {:ok, {secret, Repo.watch(secret, label: label)}}
+        end
+      end,
+      prefix: tenant
+    )
+  end
+
+  def get_expired_secrets(tenant, now) do
+    Repo.stream(Secret, prefix: tenant)
+    |> Stream.filter(fn %Secret{expires_at: at} ->
+      NaiveDateTime.before?(at, now)
+    end)
+    |> Stream.map(fn %Secret{id: id} ->
+      id
+    end)
+    |> Enum.to_list()
+  end
+
+  def delete_secret(tenant, id) do
+    Repo.delete(%Secret{id: id}, prefix: tenant)
+  end
+
+  def count_secrets(tenant) do
+    Repo.stream(Secret, prefix: tenant)
+    |> Enum.count()
+  end
+
+  def list_secrets(tenant) do
+    Repo.all(Secret, prefix: tenant)
   end
 
   @doc """
   Reads secret with id or throws
   """
-  def get_secret!(id) do
-    Repo.get!(Secret, id)
+  def get_secret!(tenant, id) do
+    Repo.get!(Secret, id, prefix: tenant)
   end
 
   @doc """
   Reads secret with id or returns error
   """
-  def get_secret(id) do
-    Repo.get(Secret, id)
+  def get_secret(tenant, id) do
+    Repo.get(Secret, id, prefix: tenant)
   end
 
   @doc """
@@ -31,10 +73,11 @@ defmodule LiveSecret.Do do
   transform this into fields on the Secret. Easier to send base64 to
   to the browser with Presecret and store raw binary in the Secret.
   """
-  def insert!(presecret_attrs) do
+  def insert!(tenant, presecret_attrs) do
     attrs = Presecret.make_secret_attrs(presecret_attrs)
 
     Secret.new()
+    |> FoundationDB.usetenant(tenant)
     |> Secret.changeset(attrs)
     |> Repo.insert!()
   end
@@ -42,8 +85,9 @@ defmodule LiveSecret.Do do
   @doc """
   Returns a changeset with validated fields (or not) from Presecret attrs
   """
-  def validate_presecret(presecret_attrs) do
+  def validate_presecret(tenant, presecret_attrs) do
     %Presecret{}
+    |> FoundationDB.usetenant(tenant)
     |> Presecret.changeset(presecret_attrs)
     |> Map.put(:action, :validate)
   end
@@ -68,8 +112,8 @@ defmodule LiveSecret.Do do
   @doc """
   Updates a secret to be in live mode
   """
-  def go_live!(id) do
-    Repo.get!(Secret, id)
+  def go_live!(tenant, id) do
+    Repo.get!(Secret, id, prefix: tenant)
     |> Secret.changeset(%{
       live?: true
     })
@@ -79,8 +123,8 @@ defmodule LiveSecret.Do do
   @doc """
   Updates a secret to be in async mode
   """
-  def go_async!(id) do
-    Repo.get!(Secret, id)
+  def go_async!(tenant, id) do
+    Repo.get!(Secret, id, prefix: tenant)
     |> Secret.changeset(%{
       live?: false
     })

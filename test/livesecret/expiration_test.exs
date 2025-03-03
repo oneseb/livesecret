@@ -1,22 +1,24 @@
 defmodule LiveSecret.ExpirationTest do
-  use LiveSecret.DataCase
+  use LiveSecret.TenantCase, async: true
 
   alias LiveSecret.{Do, Expiration}
 
-  test "everything *can be* expired" do
-    0 = Do.count_secrets()
-    Do.insert!(@valid_presecret_attrs)
-    1 = Do.count_secrets()
-    Expiration.expire_all()
-    0 = Do.count_secrets()
+  test "everything *can be* expired", context do
+    tenant = context[:tenant]
+    0 = Do.count_secrets(tenant)
+    Do.insert!(tenant, @valid_presecret_attrs)
+    1 = Do.count_secrets(tenant)
+    Expiration.expire_all(tenant)
+    0 = Do.count_secrets(tenant)
   end
 
-  test "not everything *is* expired" do
-    0 = Do.count_secrets()
-    Do.insert!(@preexpired_presecret_attrs)
-    Do.insert!(@valid_presecret_attrs)
-    2 = Do.count_secrets()
-    Expiration.expire()
-    1 = Do.count_secrets()
+  test "not everything *is* expired", context do
+    tenant = context[:tenant]
+    0 = Do.count_secrets(tenant)
+    Do.insert!(tenant, @preexpired_presecret_attrs)
+    Do.insert!(tenant, @valid_presecret_attrs)
+    2 = Do.count_secrets(tenant)
+    Expiration.expire(tenant)
+    1 = Do.count_secrets(tenant)
   end
 end

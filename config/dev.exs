@@ -1,11 +1,25 @@
 import Config
 
-# Configure your database
-config :livesecret, LiveSecret.Repo,
-  database: Path.expand("../livesecret_dev.db", Path.dirname(__ENV__.file)),
-  pool_size: 5,
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true
+config :livesecret, LiveSecret.Repo, open_db: &ExFdbmonitor.Cluster.open_db/1
+
+config :ex_fdbmonitor,
+  etc_dir: ".livesecret/dev/fdb/etc",
+  run_dir: ".livesecret/dev/fdb/run"
+
+config :ex_fdbmonitor,
+  bootstrap: [
+    cluster: [
+      coordinator_addr: "127.0.0.1"
+    ],
+    conf: [
+      data_dir: ".livesecret/dev/fdb/data",
+      log_dir: ".livesecret/dev/fdb/log",
+      fdbservers: [
+        [port: 5000]
+      ]
+    ],
+    fdbcli: ~w[configure new single ssd-redwood-1]
+  ]
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -64,7 +78,7 @@ config :livesecret, LiveSecretWeb.Endpoint,
 
 config :livesecret, LiveSecret.Expiration, interval: :timer.seconds(20)
 
-config :livesecret, LiveSecretWeb.Presence, behind_proxy: false
+config :livesecret, LiveSecretWeb.Presence, tenants: ["localhost"], behind_proxy: false
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"

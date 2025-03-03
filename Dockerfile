@@ -14,18 +14,29 @@
 #
 ARG ELIXIR_VERSION=1.17.3
 ARG OTP_VERSION=27.1.3
-ARG DEBIAN_VERSION=buster-20240612-slim
+ARG UBUNTU_VERSION=jammy-20250126
+ARG FDB_VERSION=7.3.58
 
-ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
-ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
+ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-ubuntu-${UBUNTU_VERSION}"
+ARG RUNNER_IMAGE="ubuntu:${UBUNTU_VERSION}"
 
 FROM ${BUILDER_IMAGE} as builder
+ARG FDB_VERSION
 
 # install build dependencies
-RUN apt-get update -y && apt-get install -y build-essential git \
+RUN apt-get update -y && apt-get install -y build-essential git wget \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
+WORKDIR /root
+
+RUN wget https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-clients_${FDB_VERSION}-1_aarch64.deb && \
+    wget https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-server_${FDB_VERSION}-1_aarch64.deb
+
+RUN dpkg -i foundationdb-clients_${FDB_VERSION}-1_aarch64.deb
+
 # prepare build dir
+RUN useradd -u 1001 -ms /bin/bash app
+RUN mkdir /app
 WORKDIR /app
 
 # install hex + rebar
@@ -64,28 +75,53 @@ COPY config/runtime.exs config/
 COPY rel rel
 RUN mix release
 
+RUN chown -R app: /app
+
 # start a new build stage so that the final image will only contain
 # the compiled release and other runtime necessities
 FROM ${RUNNER_IMAGE}
+ARG FDB_VERSION
 
-RUN apt-get update -y && apt-get install -y libstdc++6 openssl libncurses5 locales sqlite3 \
+RUN apt-get update -y && apt-get install -y libstdc++6 openssl libncurses5 locales \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
+
+COPY --from=builder --chown=nobody:root /root/foundationdb-clients_${FDB_VERSION}-1_aarch64.deb /root
+COPY --from=builder --chown=nobody:root /root/foundationdb-server_${FDB_VERSION}-1_aarch64.deb /root
+
+RUN dpkg -i /root/foundationdb-clients_${FDB_VERSION}-1_aarch64.deb && \
+    dpkg -i /root/foundationdb-server_${FDB_VERSION}-1_aarch64.deb
 
 # Set the locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+
+RUN useradd -u 1001 -ms /bin/bash app && \
+    mkdir /app && chown -R app: /app
 
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-WORKDIR "/app"
-RUN chown nobody /app
+# Required for ex_fdbmonitor
+ENV SHELL /bin/bash
+
+RUN mkdir /data
+RUN chown -R app: /data
+VOLUME /data
+
+USER app
+WORKDIR /app
 
 # set runner ENV
 ENV MIX_ENV="prod"
+ENV FDBMONITOR_PATH="/usr/lib/foundationdb/fdbmonitor"
+ENV FDBCLI_PATH="/usr/bin/fdbcli"
+ENV FDBSERVER_PATH="/usr/sbin/fdbserver"
+ENV FDBDR_PATH="/usr/bin/fdbdr"
+ENV BACKUP_AGENT_PATH="/usr/lib/foundationdb/backup_agent/backup_agent"
+ENV DR_AGENT_PATH="/usr/bin/dr_agent"
 
 # Only copy the final release from the build stage
-COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/livesecret ./
+COPY --from=builder --chown=app /app/_build/${MIX_ENV}/rel/livesecret .
 
 EXPOSE ${PORT}
 
@@ -94,8 +130,8 @@ CMD ["/app/bin/server"]
 # Example run command:
 # docker run -it \
 #     -p 8000:80 \
-#     -e DATABASE_PATH=.livesecret/livesecret.db \
-#     -e PHX_HOST=example.com \
+#     -e DATABASE_PATH=/data/livesecret \
+#     -e PHX_HOST=livesecret.local \
 #     -e PORT=80 \
 #     -e SECRET_KEY_BASE="$(mix phx.gen.secret)" \
 #     -e BEHIND_PROXY=false \

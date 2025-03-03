@@ -7,10 +7,6 @@
 # General application configuration
 import Config
 
-config :livesecret,
-  ecto_repos: [LiveSecret.Repo],
-  generators: [binary_id: true]
-
 # Configures the endpoint
 config :livesecret, LiveSecretWeb.Endpoint,
   url: [host: "localhost"],

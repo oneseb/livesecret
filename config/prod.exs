@@ -1,5 +1,7 @@
 import Config
 
+config :livesecret, LiveSecret.Repo, open_db: &ExFdbmonitor.Cluster.open_db/1
+
 # For production, don't forget to configure the url host
 # to something meaningful, Phoenix uses this information
 # when generating URLs.

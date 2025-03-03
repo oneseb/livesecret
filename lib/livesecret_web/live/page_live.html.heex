@@ -1,0 +1,90 @@
+<div class="min-h-full">
+  <div class="bg-gray-800 pb-32">
+    <header class="py-10">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <h1 class="text-3xl font-bold tracking-tight text-white">LiveSecret</h1>
+      </div>
+    </header>
+  </div>
+
+  <main class="-mt-32">
+    <div class="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
+      <div class="rounded-lg bg-white px-5 py-6 shadow sm:px-6">
+        <LiveSecretWeb.BreadcrumbComponent.show
+          :if={not is_nil(@secret.id)}
+          home={~p"/"}
+          id={@secret.id}
+          live_action={@live_action}
+          burned_at={@secret.burned_at}
+          live?={@secret.live?}
+        />
+
+        <%= case @special_action do %>
+          <% :decrypting -> %>
+            <PageComponents.decrypt_modal
+              :if={@self_burned? or not is_nil(@secret.content)}
+              secret={@secret}
+              changeset={Secret.changeset(@secret, %{})}
+            />
+          <% _ -> %>
+        <% end %>
+
+        <%= case @live_action do %>
+          <% :create -> %>
+            <PageComponents.secret_links
+              live_action={@live_action}
+              to={~p"/secret/dne"}
+              enabled={is_nil(@secret.burned_at)}
+            />
+            <SecretFormComponent.create
+              changeset={@changeset}
+              modes={Presecret.supported_modes()}
+              ,
+              durations={Presecret.supported_durations()}
+            />
+            <PageComponents.section_header>Help</PageComponents.section_header>
+            <PageComponents.help live_action={@live_action} />
+          <% :admin -> %>
+            <PageComponents.secret_links
+              live_action={@live_action}
+              to={~p"/secret/#{@secret.id}"}
+              enabled={is_nil(@secret.burned_at)}
+            />
+
+            <PageComponents.section_header>Online now</PageComponents.section_header>
+            <LiveSecretWeb.UserListComponent.view
+              :if={not is_nil(@current_user)}
+              self={@current_user.id}
+              live_action={@live_action}
+              users={@users}
+              burned_at={@secret.burned_at}
+            />
+
+            <PageComponents.section_header>Actions</PageComponents.section_header>
+            <PageComponents.action_panel burned_at={@secret.burned_at} live?={@secret.live?} />
+          <% :receiver -> %>
+            <% user = if is_nil(@current_user), do: nil, else: @users[@current_user.id] %>
+
+            <PageComponents.receiver_intro
+              :if={not is_nil(user)}
+              user={user}
+              burned_at={@secret.burned_at}
+              live?={@secret.live?}
+            />
+
+            <PageComponents.section_header>Online now</PageComponents.section_header>
+            <LiveSecretWeb.UserListComponent.view
+              :if={not is_nil(@current_user)}
+              self={@current_user.id}
+              live_action={@live_action}
+              users={@users}
+              burned_at={@secret.burned_at}
+            />
+
+            <PageComponents.section_header>Help</PageComponents.section_header>
+            <PageComponents.help live_action={@live_action} />
+        <% end %>
+      </div>
+    </div>
+  </main>
+</div>

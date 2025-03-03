@@ -1,34 +1,38 @@
 defmodule LiveSecret.DoTest do
-  use LiveSecret.DataCase
+  use LiveSecret.TenantCase, async: true
   alias LiveSecret.{Secret, Do}
 
-  test "create secret" do
+  test "create secret", context do
+    tenant = context[:tenant]
     attrs = @valid_presecret_attrs
-    changeset = Do.validate_presecret(attrs)
+    changeset = Do.validate_presecret(tenant, attrs)
     assert changeset.valid?
-    %Secret{id: id} = Do.insert!(attrs)
-    %Secret{} = Do.get_secret!(id)
+    %Secret{id: id} = Do.insert!(tenant, attrs)
+    %Secret{} = Do.get_secret!(tenant, id)
   end
 
-  test "reject invalid secret" do
+  test "reject invalid secret", context do
+    tenant = context[:tenant]
     attrs = @invalid_presecret_attrs
-    changeset = Do.validate_presecret(attrs)
+    changeset = Do.validate_presecret(tenant, attrs)
     refute changeset.valid?
 
     assert_raise(
       FunctionClauseError,
-      fn -> Do.insert!(attrs) end
+      fn -> Do.insert!(tenant, attrs) end
     )
   end
 
-  test "burn secret" do
-    secret = Do.insert!(@valid_presecret_attrs)
+  test "burn secret", context do
+    tenant = context[:tenant]
+    secret = Do.insert!(tenant, @valid_presecret_attrs)
     %Secret{iv: nil, content: nil} = Do.burn!(secret)
   end
 
-  test "change live state" do
-    %Secret{id: id} = Do.insert!(@valid_presecret_attrs)
-    %Secret{live?: true} = Do.go_live!(id)
-    %Secret{live?: false} = Do.go_async!(id)
+  test "change live state", context do
+    tenant = context[:tenant]
+    secret = Do.insert!(tenant, @valid_presecret_attrs)
+    %Secret{live?: true} = Do.go_live!(tenant, secret.id)
+    %Secret{live?: false} = Do.go_async!(tenant, secret.id)
   end
 end
