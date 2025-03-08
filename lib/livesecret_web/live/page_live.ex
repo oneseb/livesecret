@@ -53,6 +53,7 @@ defmodule LiveSecretWeb.PageLive do
      socket
      |> assign(:page_title, "LiveSecret")
      |> assign(:secret, %Secret{})
+     |> assign(:futures, [])
      |> assign(:special_action, nil)
      |> assign(:self_burned?, false)
      |> assign(:changeset, Presecret.changeset(Presecret.new(), %{}))}
@@ -170,8 +171,17 @@ defmodule LiveSecretWeb.PageLive do
     end
   end
 
-  def handle_params(_, _, socket) do
-    {:noreply, socket}
+  def handle_params(params, _, socket) do
+    if socket.assigns.live_action == :create and map_size(params) == 0 and
+         !is_nil(socket.assigns.secret.id) do
+      # This clause is a consequence of us using 'push_patch' on secret creation.
+      # After creation, if the user uses the browser 'back' button, LiveView will give us
+      # a handle_params (this clause) without a mount. To ensure we fully reset the page,
+      # we force a navigation to the root path.
+      {:noreply, push_navigate(socket, to: ~p"/")}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
