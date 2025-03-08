@@ -69,7 +69,9 @@ if config_env() == :prod do
       conf: [
         data_dir: Path.join(database_path, "data"),
         log_dir: Path.join(database_path, "log"),
-        fdbservers: [[port: 4500], [port: 4501]]
+        memory: System.get_env("FDBSERVER_MEMORY") || nil,
+        cache_memory: System.get_env("FDBSERVER_CACHE_MEMORY") || nil,
+        fdbservers: [[port: 4500]]
       ],
       fdbcli: if(node_idx == 0, do: ~w[configure new single ssd-redwood-1]),
       fdbcli: if(node_idx == 2, do: ~w[configure double]),

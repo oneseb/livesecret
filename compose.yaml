@@ -3,7 +3,7 @@ services:
     image: nginxproxy/nginx-proxy
     container_name: nginx-proxy
     environment:
-      TRUST_DOWNSTREAM_PROXY: false
+      TRUST_DOWNSTREAM_PROXY: "false"
       SSL_POLICY: Mozilla-Modern
     ports:
       - "80:80"
@@ -43,6 +43,8 @@ services:
       BEHIND_PROXY: ${BEHIND_PROXY:-true}
       REMOTE_IP_HEADER: ${REMOTE_IP_HEADER:-x-real-ip}
       REMOTE_IP_CLIENTS: 0.0.0.0/0
+      FDBSERVER_MEMORY: ${FDBSERVER_MEMORY:-8GiB}
+      FDBSERVER_CACHE_MEMORY: ${FDBSERVER_CACHE_MEMORY:-2GiB}
     volumes:
       - db-data:/data:rw
     network_mode: bridge
